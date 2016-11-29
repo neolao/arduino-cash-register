@@ -1,5 +1,5 @@
-const int obstaclePin = 7;
-const int buzzerPin = 6;
+const int obstaclePin = 2;
+const int buzzerPin = 3;
 const int soundDuration = 40;
 const int randomError = 20;
 int lastObstacleValue;
@@ -54,7 +54,18 @@ void soundOk() {
  */
 void soundError() {
     int i;
-    for (i=0; i<soundDuration; i++) {
+    for (i=0; i<soundDuration/2; i++) {
+        analogWrite(buzzerPin, 50);
+        delay(1);
+        analogWrite(buzzerPin, 255);
+        delay(1);
+        analogWrite(buzzerPin, 0);
+        delay(1);
+    }
+
+    delay(100);
+
+    for (i=0; i<soundDuration/2; i++) {
         analogWrite(buzzerPin, 50);
         delay(1);
         analogWrite(buzzerPin, 255);
