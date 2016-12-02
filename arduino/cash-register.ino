@@ -1,39 +1,67 @@
-const int obstaclePin = 2;
-const int buzzerPin = 3;
-const int soundDuration = 40;
-const int randomError = 20;
+#include <avr/sleep.h>
+
+const int OBSTACLE_SENSOR = 2;
+const int BUZZER = 3;
+const int SOUND_DURATION = 40;
+const int RANDOM_ERROR_COUNT = 20;
 int lastObstacleValue;
 
 /**
- * Setup the board
+ * Sleep mode
+ */
+void sleep() {
+  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+  sleep_enable();
+  
+  noInterrupts();
+  attachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR), onObstacleChanged, CHANGE);
+  interrupts ();
+  
+  sleep_cpu();
+}
+
+/**
+ * Wake up
+ */
+void wake() {
+  sleep_disable();
+  detachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR));
+}
+
+/**
+ * Obstacle sensor is changed
+ */
+void onObstacleChanged() {
+  wake();
+}
+
+/**
+ * Setup
  */
 void setup() {
-    // initialize serial communication:
-    //Serial.begin(9600);
+  pinMode(BUZZER, OUTPUT);
+  pinMode(OBSTACLE_SENSOR, INPUT);
 
-    pinMode(buzzerPin, OUTPUT);
-    pinMode(obstaclePin, INPUT);
-
-    lastObstacleValue = HIGH;
+  lastObstacleValue = HIGH;
 }
 
 /**
  * Main loop
  */
 void loop() {
-    int obstacleValue = digitalRead(obstaclePin);
+  int obstacleValue = digitalRead(OBSTACLE_SENSOR);
   
-    if (lastObstacleValue == HIGH && obstacleValue == LOW) {
-        int randNumber = random(randomError);
-        if (randNumber == 0) {
-            soundError();
-        } else {
-            soundOk();
-        }
-    }
-    lastObstacleValue = obstacleValue;
+  if (lastObstacleValue == HIGH && obstacleValue == LOW) {
+      int randNumber = random(RANDOM_ERROR_COUNT);
+      if (randNumber == 0) {
+          soundError();
+      } else {
+          soundOk();
+      }
+  }
+  lastObstacleValue = obstacleValue;
   
-    delay(50);
+  sleep();
 }
 
 /**
@@ -41,10 +69,10 @@ void loop() {
  */
 void soundOk() {
     int i;
-    for (i=0; i<soundDuration; i++) {
-        digitalWrite(buzzerPin, HIGH);
+    for (i=0; i<SOUND_DURATION; i++) {
+        digitalWrite(BUZZER, HIGH);
         delay(1);
-        digitalWrite(buzzerPin, LOW);
+        digitalWrite(BUZZER, LOW);
         delay(1);
     }
 }
@@ -54,23 +82,23 @@ void soundOk() {
  */
 void soundError() {
     int i;
-    for (i=0; i<soundDuration/2; i++) {
-        analogWrite(buzzerPin, 50);
+    for (i=0; i<SOUND_DURATION/2; i++) {
+        analogWrite(BUZZER, 50);
         delay(1);
-        analogWrite(buzzerPin, 255);
+        analogWrite(BUZZER, 255);
         delay(1);
-        analogWrite(buzzerPin, 0);
+        analogWrite(BUZZER, 0);
         delay(1);
     }
 
     delay(100);
 
-    for (i=0; i<soundDuration/2; i++) {
-        analogWrite(buzzerPin, 50);
+    for (i=0; i<SOUND_DURATION/2; i++) {
+        analogWrite(BUZZER, 50);
         delay(1);
-        analogWrite(buzzerPin, 255);
+        analogWrite(BUZZER, 255);
         delay(1);
-        analogWrite(buzzerPin, 0);
+        analogWrite(BUZZER, 0);
         delay(1);
     }
 }
