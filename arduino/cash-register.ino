@@ -1,7 +1,9 @@
 #include <avr/sleep.h>
 
 const int OBSTACLE_SENSOR = 2;
+const int OBSTACLE_BATTERY = 5;
 const int BUZZER = 3;
+const int BUZZER_BATTERY = 6;
 const int SOUND_DURATION = 40;
 const int RANDOM_ERROR_COUNT = 20;
 int lastObstacleValue;
@@ -11,11 +13,11 @@ int lastObstacleValue;
  */
 void sleep() {
   set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  sleep_enable();
   
   noInterrupts();
+  sleep_enable();
   attachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR), onObstacleChanged, CHANGE);
-  interrupts ();
+  interrupts();
   
   sleep_cpu();
 }
@@ -40,7 +42,9 @@ void onObstacleChanged() {
  */
 void setup() {
   pinMode(BUZZER, OUTPUT);
+  pinMode(BUZZER_BATTERY, OUTPUT);
   pinMode(OBSTACLE_SENSOR, INPUT);
+  pinMode(OBSTACLE_BATTERY, OUTPUT);
 
   lastObstacleValue = HIGH;
 }
@@ -49,6 +53,8 @@ void setup() {
  * Main loop
  */
 void loop() {
+  digitalWrite(OBSTACLE_BATTERY, 255);
+  digitalWrite(BUZZER_BATTERY, 255);
   int obstacleValue = digitalRead(OBSTACLE_SENSOR);
   
   if (lastObstacleValue == HIGH && obstacleValue == LOW) {
@@ -60,7 +66,7 @@ void loop() {
       }
   }
   lastObstacleValue = obstacleValue;
-  
+
   sleep();
 }
 
