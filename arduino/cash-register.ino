@@ -1,46 +1,20 @@
-#include <avr/sleep.h>
+#include "LowPower.h"
 
 const int OBSTACLE_SENSOR = 2;
-const int OBSTACLE_BATTERY = 5;
-const int BUZZER = 3;
+const int OBSTACLE_BATTERY = 3;
+const int LED = 5;
+const int BUZZER = 9;
 const int BUZZER_BATTERY = 6;
 const int SOUND_DURATION = 40;
 const int RANDOM_ERROR_COUNT = 20;
+const int COUNT_BEFORE_SLEEP = 30;
 int lastObstacleValue;
-
-/**
- * Sleep mode
- */
-void sleep() {
-  set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-  
-  noInterrupts();
-  sleep_enable();
-  attachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR), onObstacleChanged, CHANGE);
-  interrupts();
-  
-  sleep_cpu();
-}
-
-/**
- * Wake up
- */
-void wake() {
-  sleep_disable();
-  detachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR));
-}
-
-/**
- * Obstacle sensor is changed
- */
-void onObstacleChanged() {
-  wake();
-}
 
 /**
  * Setup
  */
 void setup() {
+  pinMode(LED, OUTPUT);
   pinMode(BUZZER, OUTPUT);
   pinMode(BUZZER_BATTERY, OUTPUT);
   pinMode(OBSTACLE_SENSOR, INPUT);
@@ -53,21 +27,56 @@ void setup() {
  * Main loop
  */
 void loop() {
+  start:
+
+  // Turn on batteries
   digitalWrite(OBSTACLE_BATTERY, 255);
   digitalWrite(BUZZER_BATTERY, 255);
-  int obstacleValue = digitalRead(OBSTACLE_SENSOR);
-  
-  if (lastObstacleValue == HIGH && obstacleValue == LOW) {
+
+
+  attachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR), wake, LOW);
+
+  int obstacleValue = HIGH;
+  int count = COUNT_BEFORE_SLEEP;
+  while (count > 0) {
+    obstacleValue = digitalRead(OBSTACLE_SENSOR);
+    if (lastObstacleValue == HIGH && obstacleValue == LOW) {
+      detachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR));
+      
       int randNumber = random(RANDOM_ERROR_COUNT);
       if (randNumber == 0) {
           soundError();
       } else {
           soundOk();
       }
+    }
+    lastObstacleValue = obstacleValue;
+    if (obstacleValue == LOW) {
+      
+      delay(500);
+      goto start;
+      break;
+    }
+    
+    count--;
+    LowPower.powerSave(SLEEP_2S, ADC_OFF, BOD_OFF, TIMER2_ON);
   }
-  lastObstacleValue = obstacleValue;
+  detachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR));
+  
 
-  sleep();
+  // Last light before sleep
+  analogWrite(LED, 10);
+  delay(2000);
+  analogWrite(LED, 0);
+
+  // Turn off batteries
+  digitalWrite(OBSTACLE_BATTERY, 0);
+  digitalWrite(BUZZER_BATTERY, 0);
+
+  // Sleep and wait sensor battery
+  attachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR), wake, RISING);
+  LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+  detachInterrupt(digitalPinToInterrupt(OBSTACLE_SENSOR));
 }
 
 /**
@@ -107,4 +116,11 @@ void soundError() {
         analogWrite(BUZZER, 0);
         delay(1);
     }
+}
+
+/**
+ * Wake up
+ */
+void wake() {
+  
 }
